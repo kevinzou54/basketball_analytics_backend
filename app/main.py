@@ -1,16 +1,26 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Body
 from pydantic import BaseModel
 from nba_api.stats.endpoints import playercareerstats
 from nba_api.stats.static import players
 from functools import lru_cache
-from typing import Union
+from typing import Union, List
+from pydantic import BaseModel
 
 app = FastAPI()
 
 class PlayerStats(BaseModel):
     points_per_game: float
     true_shooting_pct: float
-    usage_rate: Union[float, str]  # allows either number or "N/A"
+    rebounds_per_game: float
+    assists_per_game: float
+    steals_per_game: float
+    blocks_per_game: float
+    turnovers_per_game: float
+    fg_pct: float
+    fg3_pct: float
+    ft_pct: float
+    minutes_per_game: float
+    usage_rate: Union[str, float]
     team: str
 
 def get_player_id(name: str):
@@ -32,7 +42,6 @@ def get_player_stats(name: str):
         return get_cached_player_stats(player_id)
     except ValueError:
         raise HTTPException(status_code=500, detail="Player data is incomplete")
-
 
 
 
@@ -104,4 +113,37 @@ def compare_players(player1: str = Query(...), player2: str = Query(...)):
     return {
         "player1": {**p1_stats, "name": format_name(player1)},
         "player2": {**p2_stats, "name": format_name(player2)}
+    }
+
+
+@app.post("/lineup")
+def get_lineup_stats(players: List[str] = Body(...)):
+    player_stats = []
+    names = []
+
+    for player_slug in players:
+        player_id = get_player_id(player_slug)
+        if not player_id:
+            raise HTTPException(status_code=404, detail=f"Player '{player_slug}' not found")
+        try:
+            stats = get_cached_player_stats(player_id)
+        except ValueError:
+            raise HTTPException(status_code=500, detail=f"Stats unavailable for '{player_slug}'")
+        
+        player_stats.append(stats)
+        names.append(" ".join(word.capitalize() for word in player_slug.split("-")))
+
+    def avg(field):
+        return round(sum(p[field] for p in player_stats) / len(player_stats), 2)
+
+    def total(field):
+        return round(sum(p[field] for p in player_stats), 2)
+
+    return {
+        "lineup": names,
+        "avg_points_per_game": avg("points_per_game"),
+        "avg_true_shooting_pct": avg("true_shooting_pct"),
+        "avg_assists_per_game": avg("assists_per_game"),
+        "avg_rebounds_per_game": avg("rebounds_per_game"),
+        "total_minutes_per_game": total("minutes_per_game")
     }
