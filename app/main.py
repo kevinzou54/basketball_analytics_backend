@@ -36,3 +36,15 @@ def get_player_stats(name: str):
         "usage_rate": 30.0,         # Placeholder
         "team": stats["TEAM_ABBREVIATION"],
     }
+
+from functools import lru_cache
+from nba_api.stats.static import players
+
+@lru_cache(maxsize=128)
+def get_player_id(name: str):
+    player_list = players.get_players()
+    name = name.lower().replace("-", " ")
+    for player in player_list:
+        if player["full_name"].lower() == name:
+            return player["id"]
+    return None
