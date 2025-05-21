@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from nba_api.stats.endpoints import playercareerstats
 from nba_api.stats.static import players
@@ -70,6 +70,38 @@ def get_cached_player_stats(player_id: int):
     return {
         "points_per_game": ppg,
         "true_shooting_pct": ts_pct,
-        "usage_rate": "N/A",  # Placeholder until you switch endpoints
+        "rebounds_per_game": round(stats["REB"] / gp, 1),
+        "assists_per_game": round(stats["AST"] / gp, 1),
+        "steals_per_game": round(stats["STL"] / gp, 1),
+        "blocks_per_game": round(stats["BLK"] / gp, 1),
+        "turnovers_per_game": round(stats["TOV"] / gp, 1),
+        "fg_pct": round(stats["FG_PCT"], 3),
+        "fg3_pct": round(stats["FG3_PCT"], 3),
+        "ft_pct": round(stats["FT_PCT"], 3),
+        "minutes_per_game": round(stats["MIN"] / gp, 1),
+        "usage_rate": "N/A",
         "team": stats["TEAM_ABBREVIATION"],
+}
+
+@app.get("/compare")
+def compare_players(player1: str = Query(...), player2: str = Query(...)):
+    p1_id = get_player_id(player1)
+    p2_id = get_player_id(player2)
+
+    if not p1_id or not p2_id:
+        raise HTTPException(status_code=404, detail="One or both players not found")
+
+    try:
+        p1_stats = get_cached_player_stats(p1_id)
+        p2_stats = get_cached_player_stats(p2_id)
+    except ValueError:
+        raise HTTPException(status_code=500, detail="Failed to retrieve stats for one or both players")
+
+    # Use capitalized names in output for readability
+    def format_name(slug):
+        return " ".join(word.capitalize() for word in slug.split("-"))
+
+    return {
+        "player1": {**p1_stats, "name": format_name(player1)},
+        "player2": {**p2_stats, "name": format_name(player2)}
     }

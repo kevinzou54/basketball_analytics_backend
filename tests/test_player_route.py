@@ -33,3 +33,14 @@ def test_get_cached_player_stats_for_known_player():
     assert isinstance(stats["true_shooting_pct"], float)
     assert stats["usage_rate"] in ["N/A", None] or isinstance(stats["usage_rate"], float)
 
+def test_compare_players():
+    response = client.get("/compare?player1=lebron-james&player2=stephen-curry")
+    assert response.status_code == 200
+
+    data = response.json()
+    assert "player1" in data
+    assert "player2" in data
+
+    for stat in ["points_per_game", "assists_per_game", "fg_pct", "minutes_per_game"]:
+        assert stat in data["player1"]
+        assert stat in data["player2"]
