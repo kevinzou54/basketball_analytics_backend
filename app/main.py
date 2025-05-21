@@ -1,25 +1,9 @@
-# main.py
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from nba_api.stats.endpoints import playercareerstats
+from nba_api.stats.static import players
 
 app = FastAPI()
-
-
-# Temporary mock database
-mock_players = {
-    "lebron-james": {
-        "points_per_game": 25.4,
-        "true_shooting_pct": 0.588,
-        "usage_rate": 31.0,
-        "team": "Lakers",
-    },
-    "stephen-curry": {
-        "points_per_game": 29.6,
-        "true_shooting_pct": 0.647,
-        "usage_rate": 30.3,
-        "team": "Warriors",
-    },
-}
 
 class PlayerStats(BaseModel):
     points_per_game: float
@@ -27,11 +11,28 @@ class PlayerStats(BaseModel):
     usage_rate: float
     team: str
 
-from fastapi import HTTPException
+def get_player_id(name: str):
+    # Use NBA API's player search
+    player_list = players.get_players()
+    name = name.lower().replace("-", " ")
+    for player in player_list:
+        if player["full_name"].lower() == name:
+            return player["id"]
+    return None
 
 @app.get("/player/{name}", response_model=PlayerStats)
 def get_player_stats(name: str):
-    player_key = name.lower().replace(" ", "-")
-    if player_key not in mock_players:
+    player_id = get_player_id(name)
+    if not player_id:
         raise HTTPException(status_code=404, detail="Player not found")
-    return mock_players[player_key]
+
+    career = playercareerstats.PlayerCareerStats(player_id=player_id)
+    stats = career.get_data_frames()[0].iloc[-1]  # Most recent season
+
+    # Very simplified logic — we'll improve this later
+    return {
+        "points_per_game": float(stats["PTS"] / stats["GP"]),
+        "true_shooting_pct": 0.58,  # Placeholder, not directly available
+        "usage_rate": 30.0,         # Placeholder
+        "team": stats["TEAM_ABBREVIATION"],
+    }
