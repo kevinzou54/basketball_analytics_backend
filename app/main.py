@@ -24,18 +24,7 @@ class PlayerStats(BaseModel):
     team: str
 
 
-def get_player_id(name: str):
-    # Use NBA API's player search
-    player_list = players.get_players()
-    name = name.lower().replace("-", " ")
-    for player in player_list:
-        if player["full_name"].lower() == name:
-            return player["id"]
-    return None
-
 @app.get("/player/{name}", response_model=PlayerStats)
-
-
 def get_player_stats(name: str):
     player_id = get_player_id(name)
     if not player_id:
@@ -48,11 +37,7 @@ def get_player_stats(name: str):
 
 
 
-from nba_api.stats.static import players
-
 @lru_cache(maxsize=128)
-
-
 def get_player_id(name: str):
     player_list = players.get_players()
     name = name.lower().replace("-", " ")
@@ -62,10 +47,7 @@ def get_player_id(name: str):
     return None
 
 
-
 @lru_cache(maxsize=128)
-
-
 def get_cached_player_stats(player_id: int):
     career = playercareerstats.PlayerCareerStats(player_id=player_id)
     stats = career.get_data_frames()[0].iloc[-1]  # most recent season
@@ -99,9 +81,8 @@ def get_cached_player_stats(player_id: int):
         "team": stats["TEAM_ABBREVIATION"],
 }
 
+
 @app.get("/compare")
-
-
 def compare_players(
     player1: str = Query(...), 
     player2: str = Query(...)
@@ -133,8 +114,6 @@ def compare_players(
 
 
 @app.post("/lineup")
-
-
 def get_lineup_stats(
     players: List[str] = Body(...),
     metric: str = Query("avg", pattern="^(avg|total)$"),

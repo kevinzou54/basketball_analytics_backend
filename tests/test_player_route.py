@@ -16,13 +16,11 @@ def test_get_player_stats_valid():
     assert data["team"] == "LAL"
 
 
-
 def test_get_player_stats_invalid():
     response = client.get("/player/unknown-player")
     assert response.status_code == 404
     data = response.json()
     assert data["detail"] == "Player not found"
-
 
 
 def test_get_cached_player_stats_for_known_player():
@@ -37,7 +35,6 @@ def test_get_cached_player_stats_for_known_player():
     assert isinstance(stats["points_per_game"], float)
     assert isinstance(stats["true_shooting_pct"], float)
     assert stats["usage_rate"] in ["N/A", None] or isinstance(stats["usage_rate"], float)
-
 
 
 def test_compare_players():
@@ -56,8 +53,7 @@ def test_compare_players():
     ]:
         assert stat in data["player1"]
         assert stat in data["player2"]
-
-        
+       
 
 def test_lineup_stats():
     response = client.post("/lineup", json={
