@@ -36,7 +36,6 @@ def get_player_stats(name: str):
         raise HTTPException(status_code=500, detail="Player data is incomplete")
 
 
-
 @lru_cache(maxsize=128)
 def get_player_id(name: str):
     player_list = players.get_players()
@@ -84,7 +83,7 @@ def get_cached_player_stats(player_id: int):
 
 @app.get("/compare")
 def compare_players(
-    player1: str = Query(...), 
+    player1: str = Query(...),
     player2: str = Query(...)
 ):
     p1_id = get_player_id(player1)
@@ -92,7 +91,7 @@ def compare_players(
 
     if not p1_id or not p2_id:
         raise HTTPException(
-            status_code=404, 
+            status_code=404,
             detail="One or both players not found")
 
     try:
@@ -100,7 +99,7 @@ def compare_players(
         p2_stats = get_cached_player_stats(p2_id)
     except ValueError:
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail="Failed to retrieve stats for one or both players")
 
     # Use capitalized names in output for readability
@@ -126,18 +125,20 @@ def get_lineup_stats(
         player_id = get_player_id(player_slug)
         if not player_id:
             raise HTTPException(
-                status_code=404, 
+                status_code=404,
                 detail=f"Player '{player_slug}' not found")
 
         try:
             stats_data = get_cached_player_stats(player_id)
         except ValueError:
             raise HTTPException(
-                status_code=500, 
+                status_code=500,
                 detail=f"Stats unavailable for '{player_slug}'")
 
         player_stats.append(stats_data)
-        names.append(" ".join(word.capitalize() for word in player_slug.split("-")))
+        names.append(
+            " ".join(word.capitalize() for word in player_slug.split("-"))
+        )
 
     # Filter down to valid fields
     stat_fields = list(player_stats[0].keys())
@@ -152,8 +153,9 @@ def get_lineup_stats(
     def aggregate(field):
         values = [p[field] for p in player_stats]
         if metric == "avg":
-            return round(sum(values) / len(values), 2) 
-        else: round(sum(values), 2)
+            return round(sum(values) / len(values), 2)
+        else:
+            return round(sum(values), 2)
 
     return {
         "lineup": names,
