@@ -33,7 +33,10 @@ def get_player_stats(name: str):
     try:
         return get_cached_player_stats(player_id)
     except ValueError:
-        raise HTTPException(status_code=500, detail="Player data is incomplete")
+        raise HTTPException(
+            status_code=500,
+            detail="Player data is incomplete"
+        )
 
 
 @lru_cache(maxsize=128)
@@ -78,7 +81,7 @@ def get_cached_player_stats(player_id: int):
         "minutes_per_game": round(stats["MIN"] / gp, 1),
         "usage_rate": "N/A",
         "team": stats["TEAM_ABBREVIATION"],
-}
+    }
 
 
 @app.get("/compare")
@@ -162,4 +165,3 @@ def get_lineup_stats(
         "metric": metric,
         **{f"{metric}_{field}": aggregate(field) for field in stat_fields}
     }
-
