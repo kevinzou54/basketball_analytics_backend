@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from nba_api.stats.endpoints import playercareerstats
 from nba_api.stats.static import players
 from functools import lru_cache
-from typing import Union, List
+from typing import Union, List, Optional
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -117,7 +117,11 @@ def compare_players(player1: str = Query(...), player2: str = Query(...)):
 
 
 @app.post("/lineup")
-def get_lineup_stats(players: List[str] = Body(...)):
+def get_lineup_stats(
+    players: List[str] = Body(...),
+    metric: str = Query("avg", pattern="^(avg|total)$"),
+    stats: Optional[str] = Query(None)
+):
     player_stats = []
     names = []
 
@@ -125,25 +129,32 @@ def get_lineup_stats(players: List[str] = Body(...)):
         player_id = get_player_id(player_slug)
         if not player_id:
             raise HTTPException(status_code=404, detail=f"Player '{player_slug}' not found")
+
         try:
-            stats = get_cached_player_stats(player_id)
+            stats_data = get_cached_player_stats(player_id)
         except ValueError:
             raise HTTPException(status_code=500, detail=f"Stats unavailable for '{player_slug}'")
-        
-        player_stats.append(stats)
+
+        player_stats.append(stats_data)
         names.append(" ".join(word.capitalize() for word in player_slug.split("-")))
 
-    def avg(field):
-        return round(sum(p[field] for p in player_stats) / len(player_stats), 2)
+    # Filter down to valid fields
+    stat_fields = list(player_stats[0].keys())
+    stat_fields.remove("team")         # Don't aggregate team names
+    stat_fields.remove("usage_rate")   # Placeholder field, not numeric
 
-    def total(field):
-        return round(sum(p[field] for p in player_stats), 2)
+    if stats:
+        requested = set(stats.split(","))
+        stat_fields = [field for field in stat_fields if field in requested]
+
+    # Perform aggregation
+    def aggregate(field):
+        values = [p[field] for p in player_stats]
+        return round(sum(values) / len(values), 2) if metric == "avg" else round(sum(values), 2)
 
     return {
         "lineup": names,
-        "avg_points_per_game": avg("points_per_game"),
-        "avg_true_shooting_pct": avg("true_shooting_pct"),
-        "avg_assists_per_game": avg("assists_per_game"),
-        "avg_rebounds_per_game": avg("rebounds_per_game"),
-        "total_minutes_per_game": total("minutes_per_game")
+        "metric": metric,
+        **{f"{metric}_{field}": aggregate(field) for field in stat_fields}
     }
+
