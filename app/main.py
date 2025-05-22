@@ -4,9 +4,9 @@ from nba_api.stats.endpoints import playercareerstats
 from nba_api.stats.static import players
 from functools import lru_cache
 from typing import Union, List, Optional
-from pydantic import BaseModel
 
 app = FastAPI()
+
 
 class PlayerStats(BaseModel):
     points_per_game: float
@@ -23,6 +23,7 @@ class PlayerStats(BaseModel):
     usage_rate: Union[str, float]
     team: str
 
+
 def get_player_id(name: str):
     # Use NBA API's player search
     player_list = players.get_players()
@@ -33,6 +34,8 @@ def get_player_id(name: str):
     return None
 
 @app.get("/player/{name}", response_model=PlayerStats)
+
+
 def get_player_stats(name: str):
     player_id = get_player_id(name)
     if not player_id:
@@ -48,6 +51,8 @@ def get_player_stats(name: str):
 from nba_api.stats.static import players
 
 @lru_cache(maxsize=128)
+
+
 def get_player_id(name: str):
     player_list = players.get_players()
     name = name.lower().replace("-", " ")
@@ -59,6 +64,8 @@ def get_player_id(name: str):
 
 
 @lru_cache(maxsize=128)
+
+
 def get_cached_player_stats(player_id: int):
     career = playercareerstats.PlayerCareerStats(player_id=player_id)
     stats = career.get_data_frames()[0].iloc[-1]  # most recent season
@@ -93,18 +100,27 @@ def get_cached_player_stats(player_id: int):
 }
 
 @app.get("/compare")
-def compare_players(player1: str = Query(...), player2: str = Query(...)):
+
+
+def compare_players(
+    player1: str = Query(...), 
+    player2: str = Query(...)
+):
     p1_id = get_player_id(player1)
     p2_id = get_player_id(player2)
 
     if not p1_id or not p2_id:
-        raise HTTPException(status_code=404, detail="One or both players not found")
+        raise HTTPException(
+            status_code=404, 
+            detail="One or both players not found")
 
     try:
         p1_stats = get_cached_player_stats(p1_id)
         p2_stats = get_cached_player_stats(p2_id)
     except ValueError:
-        raise HTTPException(status_code=500, detail="Failed to retrieve stats for one or both players")
+        raise HTTPException(
+            status_code=500, 
+            detail="Failed to retrieve stats for one or both players")
 
     # Use capitalized names in output for readability
     def format_name(slug):
@@ -117,6 +133,8 @@ def compare_players(player1: str = Query(...), player2: str = Query(...)):
 
 
 @app.post("/lineup")
+
+
 def get_lineup_stats(
     players: List[str] = Body(...),
     metric: str = Query("avg", pattern="^(avg|total)$"),
@@ -128,12 +146,16 @@ def get_lineup_stats(
     for player_slug in players:
         player_id = get_player_id(player_slug)
         if not player_id:
-            raise HTTPException(status_code=404, detail=f"Player '{player_slug}' not found")
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Player '{player_slug}' not found")
 
         try:
             stats_data = get_cached_player_stats(player_id)
         except ValueError:
-            raise HTTPException(status_code=500, detail=f"Stats unavailable for '{player_slug}'")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Stats unavailable for '{player_slug}'")
 
         player_stats.append(stats_data)
         names.append(" ".join(word.capitalize() for word in player_slug.split("-")))
@@ -150,7 +172,9 @@ def get_lineup_stats(
     # Perform aggregation
     def aggregate(field):
         values = [p[field] for p in player_stats]
-        return round(sum(values) / len(values), 2) if metric == "avg" else round(sum(values), 2)
+        if metric == "avg":
+            return round(sum(values) / len(values), 2) 
+        else: round(sum(values), 2)
 
     return {
         "lineup": names,
