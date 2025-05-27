@@ -33,10 +33,7 @@ def get_player_stats(name: str):
     try:
         return get_cached_player_stats(player_id)
     except ValueError:
-        raise HTTPException(
-            status_code=500,
-            detail="Player data is incomplete"
-        )
+        raise HTTPException(status_code=500, detail="Player data is incomplete")
 
 
 @lru_cache(maxsize=128)
@@ -85,25 +82,20 @@ def get_cached_player_stats(player_id: int):
 
 
 @app.get("/compare")
-def compare_players(
-    player1: str = Query(...),
-    player2: str = Query(...)
-):
+def compare_players(player1: str = Query(...), player2: str = Query(...)):
     p1_id = get_player_id(player1)
     p2_id = get_player_id(player2)
 
     if not p1_id or not p2_id:
-        raise HTTPException(
-            status_code=404,
-            detail="One or both players not found")
+        raise HTTPException(status_code=404, detail="One or both players not found")
 
     try:
         p1_stats = get_cached_player_stats(p1_id)
         p2_stats = get_cached_player_stats(p2_id)
     except ValueError:
         raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve stats for one or both players")
+            status_code=500, detail="Failed to retrieve stats for one or both players"
+        )
 
     # Use capitalized names in output for readability
     def format_name(slug):
@@ -111,7 +103,7 @@ def compare_players(
 
     return {
         "player1": {**p1_stats, "name": format_name(player1)},
-        "player2": {**p2_stats, "name": format_name(player2)}
+        "player2": {**p2_stats, "name": format_name(player2)},
     }
 
 
@@ -119,7 +111,7 @@ def compare_players(
 def get_lineup_stats(
     players: List[str] = Body(...),
     metric: str = Query("avg", pattern="^(avg|total)$"),
-    stats: Optional[str] = Query(None)
+    stats: Optional[str] = Query(None),
 ):
     player_stats = []
     names = []
@@ -128,25 +120,23 @@ def get_lineup_stats(
         player_id = get_player_id(player_slug)
         if not player_id:
             raise HTTPException(
-                status_code=404,
-                detail=f"Player '{player_slug}' not found")
+                status_code=404, detail=f"Player '{player_slug}' not found"
+            )
 
         try:
             stats_data = get_cached_player_stats(player_id)
         except ValueError:
             raise HTTPException(
-                status_code=500,
-                detail=f"Stats unavailable for '{player_slug}'")
+                status_code=500, detail=f"Stats unavailable for '{player_slug}'"
+            )
 
         player_stats.append(stats_data)
-        names.append(
-            " ".join(word.capitalize() for word in player_slug.split("-"))
-        )
+        names.append(" ".join(word.capitalize() for word in player_slug.split("-")))
 
     # Filter down to valid fields
     stat_fields = list(player_stats[0].keys())
-    stat_fields.remove("team")         # Don't aggregate team names
-    stat_fields.remove("usage_rate")   # Placeholder field, not numeric
+    stat_fields.remove("team")  # Don't aggregate team names
+    stat_fields.remove("usage_rate")  # Placeholder field, not numeric
 
     if stats:
         requested = set(stats.split(","))
@@ -163,5 +153,5 @@ def get_lineup_stats(
     return {
         "lineup": names,
         "metric": metric,
-        **{f"{metric}_{field}": aggregate(field) for field in stat_fields}
+        **{f"{metric}_{field}": aggregate(field) for field in stat_fields},
     }
