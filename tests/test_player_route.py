@@ -3,6 +3,7 @@
 from fastapi.testclient import TestClient
 from app.main import app
 from app.main import get_cached_player_stats, get_player_id
+import sqlite3
 
 
 client = TestClient(app)
@@ -66,3 +67,13 @@ def test_lineup_stats():
     assert "total_minutes_per_game" in data
     assert isinstance(data["avg_points_per_game"], float)
     assert isinstance(data["total_minutes_per_game"], float)
+
+
+def test_usage_logging():
+    client.get("/player/lebron-james")
+    conn = sqlite3.connect("usage_tracking.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM usage_log WHERE endpoint = '/player'")
+    result = cursor.fetchone()
+    conn.close()
+    assert result is not None

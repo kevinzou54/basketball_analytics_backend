@@ -4,8 +4,15 @@ from nba_api.stats.endpoints import playercareerstats
 from nba_api.stats.static import players
 from functools import lru_cache
 from typing import Union, List, Optional
+from app.db import init_db, log_usage
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 
 class PlayerStats(BaseModel):
@@ -26,6 +33,7 @@ class PlayerStats(BaseModel):
 
 @app.get("/player/{name}", response_model=PlayerStats)
 def get_player_stats(name: str):
+    log_usage(endpoint="/player", payload=name)
     player_id = get_player_id(name)
     if not player_id:
         raise HTTPException(status_code=404, detail="Player not found")
@@ -33,7 +41,10 @@ def get_player_stats(name: str):
     try:
         return get_cached_player_stats(player_id)
     except ValueError:
-        raise HTTPException(status_code=500, detail="Player data is incomplete")
+        raise HTTPException(
+            status_code=500,
+            detail="Player data is incomplete"
+        )
 
 
 @lru_cache(maxsize=128)
@@ -83,18 +94,23 @@ def get_cached_player_stats(player_id: int):
 
 @app.get("/compare")
 def compare_players(player1: str = Query(...), player2: str = Query(...)):
+    log_usage(endpoint="/compare", payload=f"{player1} vs {player2}")
     p1_id = get_player_id(player1)
     p2_id = get_player_id(player2)
 
     if not p1_id or not p2_id:
-        raise HTTPException(status_code=404, detail="One or both players not found")
+        raise HTTPException(
+            status_code=404,
+            detail="One or both players not found"
+        )
 
     try:
         p1_stats = get_cached_player_stats(p1_id)
         p2_stats = get_cached_player_stats(p2_id)
     except ValueError:
         raise HTTPException(
-            status_code=500, detail="Failed to retrieve stats for one or both players"
+            status_code=500,
+            detail="Failed to retrieve stats for one or both players"
         )
 
     # Use capitalized names in output for readability
@@ -120,14 +136,16 @@ def get_lineup_stats(
         player_id = get_player_id(player_slug)
         if not player_id:
             raise HTTPException(
-                status_code=404, detail=f"Player '{player_slug}' not found"
+                status_code=404,
+                detail=f"Player '{player_slug}' not found"
             )
 
         try:
             stats_data = get_cached_player_stats(player_id)
         except ValueError:
             raise HTTPException(
-                status_code=500, detail=f"Stats unavailable for '{player_slug}'"
+                status_code=500,
+                detail=f"Stats unavailable for '{player_slug}'"
             )
 
         player_stats.append(stats_data)
@@ -155,3 +173,5 @@ def get_lineup_stats(
         "metric": metric,
         **{f"{metric}_{field}": aggregate(field) for field in stat_fields},
     }
+
+    

@@ -33,3 +33,10 @@ jobs:
 
       - name: Run tests
         run: pytest || echo "No tests yet"
+        
+      - name: Run Bandit security scan and fail on issues
+        run: |
+            bandit -r app/ -o bandit-report.txt -f txt
+            grep "No issues identified" bandit-report.txt
+
+
