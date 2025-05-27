@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query, Body
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from nba_api.stats.endpoints import playercareerstats
 from nba_api.stats.static import players
@@ -7,10 +7,12 @@ from typing import Union, List, Optional
 from app.db import init_db, log_usage
 from contextlib import asynccontextmanager
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
     yield
+
 
 app = FastAPI(lifespan=lifespan)
 
@@ -41,10 +43,7 @@ def get_player_stats(name: str):
     try:
         return get_cached_player_stats(player_id)
     except ValueError:
-        raise HTTPException(
-            status_code=500,
-            detail="Player data is incomplete"
-        )
+        raise HTTPException(status_code=500, detail="Player data is incomplete")
 
 
 @lru_cache(maxsize=128)
@@ -99,18 +98,14 @@ def compare_players(player1: str = Query(...), player2: str = Query(...)):
     p2_id = get_player_id(player2)
 
     if not p1_id or not p2_id:
-        raise HTTPException(
-            status_code=404,
-            detail="One or both players not found"
-        )
+        raise HTTPException(status_code=404, detail="One or both players not found")
 
     try:
         p1_stats = get_cached_player_stats(p1_id)
         p2_stats = get_cached_player_stats(p2_id)
     except ValueError:
         raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve stats for one or both players"
+            status_code=500, detail="Failed to retrieve stats for one or both players"
         )
 
     # Use capitalized names in output for readability
@@ -123,29 +118,31 @@ def compare_players(player1: str = Query(...), player2: str = Query(...)):
     }
 
 
+class LineupRequest(BaseModel):
+    players: List[str]
+
+
 @app.post("/lineup")
 def get_lineup_stats(
-    players: List[str] = Body(...),
+    request: LineupRequest,
     metric: str = Query("avg", pattern="^(avg|total)$"),
     stats: Optional[str] = Query(None),
 ):
     player_stats = []
     names = []
 
-    for player_slug in players:
+    for player_slug in request.players:
         player_id = get_player_id(player_slug)
         if not player_id:
             raise HTTPException(
-                status_code=404,
-                detail=f"Player '{player_slug}' not found"
+                status_code=404, detail=f"Player '{player_slug}' not found"
             )
 
         try:
             stats_data = get_cached_player_stats(player_id)
         except ValueError:
             raise HTTPException(
-                status_code=500,
-                detail=f"Stats unavailable for '{player_slug}'"
+                status_code=500, detail=f"Stats unavailable for '{player_slug}'"
             )
 
         player_stats.append(stats_data)
@@ -173,5 +170,3 @@ def get_lineup_stats(
         "metric": metric,
         **{f"{metric}_{field}": aggregate(field) for field in stat_fields},
     }
-
-    

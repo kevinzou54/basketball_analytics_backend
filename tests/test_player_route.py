@@ -53,20 +53,34 @@ def test_compare_players():
         assert stat in data["player2"]
 
 
-def test_lineup_stats():
+def test_lineup_stats_avg():
     response = client.post(
         "/lineup", json={"players": ["lebron-james", "stephen-curry", "kevin-durant"]}
     )
     assert response.status_code == 200
     data = response.json()
-
     assert "lineup" in data
     assert "avg_points_per_game" in data
     assert "avg_true_shooting_pct" in data
     assert "avg_rebounds_per_game" in data
-    assert "total_minutes_per_game" in data
+    assert "avg_minutes_per_game" in data
     assert isinstance(data["avg_points_per_game"], float)
-    assert isinstance(data["total_minutes_per_game"], float)
+    assert isinstance(data["avg_minutes_per_game"], float)
+
+
+def test_lineup_stats_total():
+    response = client.post(
+        "/lineup?metric=total",
+        json={"players": ["lebron-james", "stephen-curry", "kevin-durant"]},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "lineup" in data
+    assert "total_points_per_game" in data or "total_minutes_per_game" in data
+    assert isinstance(
+        data.get("total_points_per_game", 0) + data.get("total_minutes_per_game", 0),
+        float,
+    )
 
 
 def test_usage_logging():
