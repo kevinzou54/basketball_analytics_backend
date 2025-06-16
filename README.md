@@ -32,6 +32,39 @@ This project is a FastAPI application that provides NBA player statistics. It al
     ```
     The API will be accessible at `http://127.0.0.1:8000`.
 
+## Code Quality and Formatting (Pre-commit Hooks)
+
+This project uses `pre-commit` hooks to automatically enforce code formatting (with `Black`), linting (with `Flake8`), and other checks before commits are made. This helps maintain code quality and consistency.
+
+**Setup:**
+
+1.  **Install dependencies:**
+    Ensure you have installed all project dependencies, including the development tools:
+    ```bash
+    pip install -r requirements.txt
+    ```
+    (This installs `pre-commit`, `black`, `flake8`, etc.)
+
+2.  **Install pre-commit hooks:**
+    In the root directory of the repository, run:
+    ```bash
+    pre-commit install
+    ```
+    This command installs the hooks into your local `.git/hooks` directory.
+
+**Usage:**
+
+*   **Automatic Checks:** Once installed, the hooks will run automatically every time you execute `git commit`.
+    *   If `Black` reformats any files, you'll need to `git add` those changes and commit again.
+    *   If `Flake8` or other checks report errors, the commit will be aborted until you fix the issues.
+*   **Manual Checks:** You can manually run all pre-commit hooks on all files at any time with:
+    ```bash
+    pre-commit run --all-files
+    ```
+    This is useful for checking the entire codebase or after making changes without committing yet.
+
+By using these hooks, you help ensure that code pushed to the repository adheres to the defined quality standards.
+
 ## API Endpoints
 
 ### Get Player Stats (Enhanced)
