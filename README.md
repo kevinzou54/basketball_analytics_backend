@@ -155,6 +155,55 @@ This project is a FastAPI application that provides NBA player statistics. It al
     *   `422 Unprocessable Entity`: If the request body is invalid.
     *   `500 Internal Server Error`: If stats retrieval fails.
 
+### Player Recommendations by Targeted Categories
+
+*   **Endpoint:** `POST /recommendations/categories`
+*   **Description:** Recommends active players based on a list of statistical categories the user wants to improve. Players are scored using a heuristic based on their latest regular season performance.
+*   **Request Body (`RecommendationRequest`):**
+    ```json
+    {
+        "target_categories": ["PTS", "STL", "FG3M"],
+        "excluded_player_ids": [123, 456],
+        "num_recommendations": 5
+    }
+    ```
+    *   `target_categories` (List[str], required): A list of category names to target.
+        *   Examples of valid categories: "PTS", "REB", "AST", "STL", "BLK", "FG3M", "TOV" (lower is better), "FG_PCT", "FT_PCT", "GP", "MIN". Advanced stats like "TS_PCT", "WS", "PIE", "USG_PCT" can also be targeted.
+        *   The system attempts to normalize common category abbreviations.
+    *   `excluded_player_ids` (List[int], optional, default: []): Player IDs to exclude from recommendations (e.g., players already on a user's roster).
+    *   `num_recommendations` (int, optional, default: 5): Number of players to recommend (min: 1, max: 20).
+*   **Example Response (`RecommendationResponse` - Snippet):**
+    ```json
+    {
+        "recommendations": [
+            {
+                "player_id": 2544,
+                "full_name": "LeBron James",
+                "recommendation_score": 35.8,
+                "targeted_category_stats": {
+                    "PTS": 28.9,
+                    "STL": 0.9,
+                    "FG3M": 2.2
+                },
+                "latest_season_summary_brief": {
+                    "GP": 55,
+                    "MIN": 35.5,
+                    "PTS": 28.9,
+                    "REB": 8.3,
+                    "AST": 6.8,
+                    "Team": "LAL"
+                }
+            },
+            // ... other recommended players ...
+        ]
+    }
+    ```
+    *   Each recommended player includes their ID, name, overall `recommendation_score`, their stats for the `targeted_category_stats`, and a `latest_season_summary_brief`.
+*   **Filtering:** The recommendation pool considers active players who have met minimum gameplay thresholds (e.g., >10 GP, >15 MPG in their latest regular season).
+*   **Error Responses:**
+    *   `422 Unprocessable Entity`: If the request body is invalid (e.g., `num_recommendations` out of range).
+    *   `500 Internal Server Error`: If there's an issue fetching data or processing recommendations.
+
 ## Running Tests
 
 This project uses `pytest` for testing. To run the tests:
