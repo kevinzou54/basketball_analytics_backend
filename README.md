@@ -34,78 +34,101 @@ This project is a FastAPI application that provides NBA player statistics. It al
 
 ## API Endpoints
 
-### Get Player Stats
+### Get Player Stats (Enhanced)
 
 *   **Endpoint:** `GET /player/{name}`
-*   **Description:** Retrieves career statistics for a specific player.
+*   **Description:** Retrieves comprehensive career, historical season, playoff, and advanced statistics for a specific player.
 *   **Path Parameters:**
     *   `name` (string, required): The player's name (e.g., "lebron-james").
-*   **Example Request:**
+*   **Query Parameters:**
+    *   `season_type` (string, optional, default: "all"): Type of season data.
+        *   `"regular"`: Only regular season data.
+        *   `"playoffs"`: Only playoff data.
+        *   `"all"`: Both regular season and playoff data.
+    *   `stats_mode` (string, optional, default: "all"): Type of statistics.
+        *   `"basic"`: Only basic stats (points, rebounds, assists, percentages, etc.).
+        *   `"advanced"`: Only advanced stats (ratings, percentages like USG%, TS%, PIE, WS, etc.).
+        *   `"all"`: Both basic and advanced stats.
+*   **Example Request (Fetching all regular season data, basic + advanced for LeBron James):**
     ```
-    GET /player/lebron-james
+    GET /player/lebron-james?season_type=regular&stats_mode=all
     ```
-*   **Example Response (200 OK):**
+*   **Example Response Structure (200 OK - Snippet):**
+    The response is a `PlayerProfileResponse` object.
     ```json
     {
-        "points_per_game": 27.1,
-        "true_shooting_pct": 0.588,
-        "rebounds_per_game": 7.5,
-        "assists_per_game": 7.4,
-        "steals_per_game": 1.5,
-        "blocks_per_game": 0.8,
-        "turnovers_per_game": 3.5,
-        "fg_pct": 0.505,
-        "fg3_pct": 0.347,
-        "ft_pct": 0.736,
-        "minutes_per_game": 37.9,
-        "usage_rate": "N/A",
-        "team": "LAL"
+        "player_id": 2544,
+        "player_name": "LeBron James",
+        "latest_season_summary": { // Summary of most recent regular season
+            "points_per_game": 28.9,
+            "true_shooting_pct": 0.583,
+            "rebounds_per_game": 8.3,
+            // ... other summary fields from PlayerStatsSummary
+            "team": "LAL"
+        },
+        "career_regular_season": {
+            "basic_stats": { /* ... BasicStatsModel fields ... */ },
+            "advanced_stats": { /* ... AdvancedStatsModel fields ... */ }
+        },
+        "career_playoffs": { /* ... similar to career_regular_season ... */ },
+        "historical_regular_seasons": [
+            {
+                "season_id": "2022-23",
+                "team_abbreviation": "LAL",
+                "player_age": 38,
+                "basic_stats": {
+                    "gp": 55,
+                    "pts_per_game": 28.9,
+                    // ... other BasicStatsModel fields ...
+                },
+                "advanced_stats": {
+                    "usg_pct": 0.320,
+                    "ts_pct": 0.583,
+                    "ws": 5.6,
+                    // ... other AdvancedStatsModel fields ...
+                }
+            },
+            // ... other seasons ...
+        ],
+        "historical_playoff_seasons": [ /* ... similar structure for playoff seasons ... */ ]
     }
     ```
+    *   **Note:** `BasicStatsModel` includes fields like `gp`, `min_per_game`, `pts_per_game`, `fg_pct`, `ast_per_game`, etc.
+    *   **Note:** `AdvancedStatsModel` includes fields like `off_rating`, `def_rating`, `net_rating`, `usg_pct`, `ts_pct`, `pie`, `ws`, etc.
 *   **Error Responses:**
+    *   `400 Bad Request`: If `season_type` or `stats_mode` are invalid.
     *   `404 Not Found`: If the player is not found.
     *   `500 Internal Server Error`: If player data is incomplete or there's a server-side issue.
 
-### Compare Players
+### Compare Players (Enhanced)
 
 *   **Endpoint:** `GET /compare`
-*   **Description:** Compares the statistics of two players.
+*   **Description:** Compares the detailed statistics of two players.
 *   **Query Parameters:**
-    *   `player1` (string, required): The name of the first player (e.g., "michael-jordan").
-    *   `player2` (string, required): The name of the second player (e.g., "kobe-bryant").
+    *   `player1` (string, required): Name of the first player.
+    *   `player2` (string, required): Name of the second player.
+    *   `season_type` (string, optional, default: "regular"): Common season type for both players ('regular', 'playoffs', 'all').
+    *   `stats_mode` (string, optional, default: "all"): Common stats mode for both players ('basic', 'advanced', 'all').
 *   **Example Request:**
     ```
-    GET /compare?player1=michael-jordan&player2=kobe-bryant
+    GET /compare?player1=lebron-james&player2=stephen-curry&season_type=regular&stats_mode=all
     ```
-*   **Example Response (200 OK):**
+*   **Example Response (200 OK - Snippet):**
+    The response is a dictionary where keys are player names, and values are their full `PlayerProfileResponse` objects (see structure above).
     ```json
     {
-        "player1": {
-            "points_per_game": 30.1,
-            "true_shooting_pct": 0.569,
-            "rebounds_per_game": 6.2,
-            "assists_per_game": 5.3,
-            // ... other stats
-            "name": "Michael Jordan"
-        },
-        "player2": {
-            "points_per_game": 25.0,
-            "true_shooting_pct": 0.550,
-            "rebounds_per_game": 5.2,
-            "assists_per_game": 4.7,
-            // ... other stats
-            "name": "Kobe Bryant"
-        }
+        "LeBron James": { /* PlayerProfileResponse for LeBron James */ },
+        "Stephen Curry": { /* PlayerProfileResponse for Stephen Curry */ }
     }
     ```
 *   **Error Responses:**
     *   `404 Not Found`: If one or both players are not found.
-    *   `500 Internal Server Error`: If stats retrieval fails for one or both players.
+    *   `500 Internal Server Error`: If stats retrieval fails.
 
-### Get Lineup Stats
+### Get Lineup Stats (Updated)
 
 *   **Endpoint:** `POST /lineup`
-*   **Description:** Calculates aggregated statistics for a lineup of players.
+*   **Description:** Calculates aggregated statistics for a lineup of players based on their latest regular season summary stats.
 *   **Request Body (JSON):**
     ```json
     {
@@ -113,30 +136,24 @@ This project is a FastAPI application that provides NBA player statistics. It al
     }
     ```
 *   **Query Parameters:**
-    *   `metric` (string, optional, default: "avg"): The aggregation metric. Can be "avg" or "total".
-    *   `stats` (string, optional): A comma-separated list of specific stats to include (e.g., "points_per_game,rebounds_per_game"). If not provided, all applicable stats are returned.
-*   **Example Request:**
-    ```
-    POST /lineup?metric=avg&stats=points_per_game,assists_per_game
-    Content-Type: application/json
-
-    {
-        "players": ["lebron-james", "stephen-curry", "kevin-durant"]
-    }
-    ```
-*   **Example Response (200 OK):**
+    *   `metric` (string, optional, default: "avg"): The aggregation metric ("avg" or "total").
+*   **Example Response (200 OK - Snippet):**
     ```json
     {
-        "lineup": ["Lebron James", "Stephen Curry", "Kevin Durant"],
-        "metric": "avg",
-        "avg_points_per_game": 28.5,
-        "avg_assists_per_game": 6.8
+        "lineup_players": ["LeBron James", "Stephen Curry"],
+        "aggregation_metric": "avg",
+        "aggregated_stats_from_latest_season_summary": {
+            "avg_points_per_game": 28.5,
+            "avg_true_shooting_pct": 0.600,
+            // ... other aggregated PlayerStatsSummary fields ...
+        },
+        "note": "Lineup stats are aggregated from each player's latest regular season summary."
     }
     ```
 *   **Error Responses:**
     *   `404 Not Found`: If any player in the lineup is not found.
-    *   `422 Unprocessable Entity`: If the request body or query parameters are invalid.
-    *   `500 Internal Server Error`: If stats retrieval fails for any player.
+    *   `422 Unprocessable Entity`: If the request body is invalid.
+    *   `500 Internal Server Error`: If stats retrieval fails.
 
 ## Running Tests
 
