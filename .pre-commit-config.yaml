@@ -1,0 +1,37 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0 # Use a recent, stable version
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+        args: [--allow-multiple-documents]
+    -   id: check-toml
+    -   id: check-json
+    -   id: check-added-large-files
+    -   id: detect-private-key
+
+-   repo: https://github.com/psf/black
+    rev: 24.4.2 # Use a recent, stable version (or match your project's version)
+    hooks:
+    -   id: black
+        # args: ["--line-length=88"] # Optional: if you don't use pyproject.toml for black config
+
+-   repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0 # Use a recent, stable version
+    hooks:
+    -   id: flake8
+        args: # Customize as needed, or use a .flake8 file
+          - "--max-line-length=88"  # Match Black's default
+          - "--ignore=E203,E501,W503"
+            # E203: whitespace before ':' (often conflicts with Black)
+            # E501: line too long (Black handles this)
+            # W503: line break before binary operator (Black prefers after)
+          # - "--select=C,E,F,W,B,B9" # Example: select specific error codes
+          # - "--per-file-ignores=__init__.py:F401" # Example: ignore unused imports in __init__.py
+        # additional_dependencies: # Add flake8 plugins here if you use them
+          # - flake8-bugbear
+          # - flake8-simplify
+          # - flake8-comprehensions
