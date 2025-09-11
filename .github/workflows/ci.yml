@@ -2,7 +2,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main, dev, 'feature/**']
   pull_request:
     branches: [main, dev]
 
@@ -24,6 +24,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install fastapi uvicorn
           pip install black flake8 pytest bandit
+          pip install pre-commit # Ensure pre-commit is installed
+
+      - name: Run pre-commit checks
+        run: |
+          pre-commit install # Ensure hooks are available if not already via system install
+          pre-commit run --all-files --show-diff-on-failure
 
       - name: Run linter (flake8)
         run: flake8 .

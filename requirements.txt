@@ -4,3 +4,8 @@ pydantic
 pytest
 httpx
 nba_api
+pandas
+pre-commit==3.7.0
+black==24.4.2
+flake8==7.0.0
+bandit==1.7.8
